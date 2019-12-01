@@ -1,0 +1,268 @@
+#include<bits/stdc++.h>
+#include<fstream>
+#define char_to_index(c) ((int)c-(int)'a')
+using namespace std;
+
+//Autocomplete Feature
+struct trie{
+    struct trie* children[26];
+    bool endofword;
+};
+
+struct trie* getnewnode(){
+    struct trie* temp = new trie;
+    temp->endofword = false;
+    for(int i=0; i<26; i++){
+        temp->children[i]=NULL;
+    }
+    return temp;
+}
+
+void insertname(struct trie* root, const string name){
+    struct trie* temp = root;
+    for(int i=0; i<name.length(); i++){
+        int key = char_to_index(name[i]);
+        if(!temp->children[key]){
+            temp->children[key] = getnewnode();
+        }
+        temp = temp->children[key];
+    }
+    temp->endofword = true;
+}
+
+bool search(struct trie* root, const string name){
+    struct trie* temp=root;
+    for(long unsigned int i = 0; i <name.length(); i++){
+        int index = char_to_index(name[i]);
+        if(!temp->children[index])
+            return 0;
+        temp = temp->children[index];
+    }
+    return (temp!=NULL && temp->endofword);
+}
+
+bool islastnode(struct trie* root){
+    for(int i=0; i<26; i++)
+        if(root->children[i])
+            return 0;
+    return 1;
+}
+
+void suggestions(struct trie* root, string prefix){
+    
+    if(root->endofword){
+        cout<<prefix<<'\n';
+    }
+
+    if(islastnode(root)){
+        return;
+    }
+
+    for(int i=0; i<26; i++){
+        if(root->children[i]){
+            prefix.push_back(i+'a');
+            suggestions(root->children[i], prefix);
+            prefix.pop_back();
+        }
+    }
+    prefix.pop_back();
+}
+
+int printsuggestions(struct trie* root, const string prefix){
+
+    struct trie* temp=root;
+    for(int i=0; i<prefix.length(); i++){
+        int index = char_to_index(prefix[i]);
+        if(!temp->children[index])
+            return 0;
+        temp = temp->children[index];
+    }
+
+    bool word = (temp->endofword ==true);
+
+    bool islast = islastnode(root);
+
+    if(word && islast){
+        cout<<prefix<<'\n';
+        return -1;
+    }
+
+     if(!islast){
+        suggestions(temp, prefix);
+        return 1;
+    }
+    return 0;
+}
+
+//Playlist Feature
+struct node{
+    string songname;
+    string artistname;
+    struct node* next;
+    struct node* prev;
+};
+
+struct node* head= NULL;
+
+void printplaylist(){
+    struct node* print = head;
+    if(print==NULL){
+        cout<<"Playlist Empty";
+    }
+    while(print!=NULL){
+        cout << print->songname << "------" << print->artistname<<'\n';
+        print = print->next; 
+    }
+}
+
+void deletenode(struct node* ptr){
+    if(head==NULL || ptr == NULL)
+        return;
+    if(head==ptr){
+        head = ptr->next;
+    }
+    if(ptr->next!=NULL){
+        ptr->next->prev=ptr->prev;
+    }
+    if(ptr->prev!=NULL){
+        ptr->prev->next = ptr->next;
+    }
+    free(ptr);
+    return;
+}
+
+void deletesong(string name){
+    struct node* ptr = head;
+    struct node* next;
+    
+    while(ptr!=NULL){
+        next = ptr->next;
+        if(ptr->songname==name)
+            deletenode(ptr);
+        ptr = next;
+    }
+    
+}
+
+void shuffleplay(){
+    vector<string> list;
+    struct node* start = head;
+    while(start->next!=NULL){
+        list.push_back(start->songname);
+        start=start->next;
+    }
+    random_shuffle(list.begin(), list.end());
+    for(long unsigned int i=0; i<list.size(); i++){
+        cout<<list[i]<<'\n';
+    }
+}
+
+void insertsong(string song, string artistname){
+    int pos;
+    struct node* temp = new node;
+    struct node* temp1, *temp2;
+    temp->songname = song;
+    temp->artistname = artistname;
+    cout<<"Enter the position at which you want to insert the song: "<<'\n';
+    cin>>pos;
+    if(pos==1 || head==NULL){
+        if(pos==1 && head==NULL){
+            temp->prev=temp->next=NULL;
+            head=temp;
+            return;
+        }
+        head->prev=temp;
+        temp->prev=NULL;
+        temp->next=head;
+        head=temp;
+        return;
+    }
+    temp1=head;
+    for(int i=0;i<pos-2;i++){
+        temp1=temp1->next;
+    }
+
+    temp->next=temp1->next;
+    temp->prev=temp1;
+    temp1->next=temp;
+
+    if(temp->next!=NULL){
+    temp2=temp->next;
+    temp2->prev=temp;
+    }
+}
+
+int main(){
+    //Enter Song Name with no space.
+    //Song Library
+    //Song will be added through a text file.
+    struct trie* root = getnewnode();
+    ifstream file_;
+    string data;
+    file_.open("songs.txt");
+    while(file_){
+        getline(file_, data);
+        insertname(root, data);
+    }
+    file_.close();
+    string s_name, a_name, ini, missing_song;
+    int choice;
+    cout<<"--------Welcome To Your Playlist!--------"<<'\n';
+    cout<<"Insert Song - Press 1"<<'\n'<<"Delete Song - Press 2"<<'\n'<<"Shuffle Play - Press 3"<<'\n'<<"Search a Song- Press 4"<<'\n'<<"Print Playlist- Press 5"<<'\n'<<"Quit-Press 0"<<'\n';
+    bool run = true;
+    while(run){
+        cout<<"Enter your Choice!"<<'\n';
+        cin>>choice;
+        if(choice==1){
+            cout<<"Enter the Song Name: "<<'\n';
+            cin >> s_name;
+            cout<<"Enter the Artist Name: "<<'\n';
+            cin>> a_name;
+            insertsong(s_name, a_name);
+        }
+        else if(choice==2){
+            if(head==NULL){
+                cout<<"Playlist is Empty!"<<'\n';
+            }
+        else
+        {
+            cout<<"Enter the song name you want to delete: "<<'\n';
+            cin>>s_name;
+            deletesong(s_name);
+        }
+        
+        }
+        else if(choice == 3){
+            if(head==NULL){
+                cout<<"Playlist Is Empty! ";
+        }
+        else
+            shuffleplay();
+        }
+        else if(choice == 4){
+            cout<<"Enter the prefix of the song! "<<'\n';
+            cin>>ini; //No Spaces
+            int verify = printsuggestions(root, ini);
+            if(verify==-1){
+                cout << "No other song with this prefix! "<<'\n';
+            }
+            else if(verify == 0){
+                cout << "No song found! "<<'\n';
+                cout << "Please enter the song name! "<<'\n';
+                cin>>missing_song; //No Spaces
+                insertname(root, missing_song);
+            }
+        }
+        else if(choice == 5){
+            printplaylist();
+        }
+        else if(choice==0)
+        {
+            run = false;
+        }
+        else
+        {
+            cout<<"Incorrect.";
+        }
+    } 
+}
